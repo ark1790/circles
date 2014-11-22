@@ -68,8 +68,50 @@ def connectedness(A):
 	return P 
 	
 
+def compute_density(circle , nodes, A):
+	# print(circle)
+	# print(nodes)
+	# print(A)
+	A = np.array(A)
+	xc = 0
+	yc = 0
+	edge_count = 0
+	m = 0.0
+	for x in circle:
+		m += 1.0
+	
+	
+	for x in nodes:
+		if x not in circle :
+			continue
+		yc = 0
+		for y in nodes:
+			if xc >= yc:
+				yc += 1
+				continue
+			if x == y:
+				continue
+			if y not in circle:
+				continue
+			# print(str(x) + ' ' + str(y))
+			if A[xc][yc] == 1:
+				edge_count += 1.0
+			yc += 1
+		xc += 1
+	m *= (m-1.0)
+	if m == 0:
+		return 1.0
+	edge_count /= m
+	edge_count *= 2.0
 
-def to_adjacency_matrix(n):
+	return edge_count
+
+	
+
+			
+
+
+def compute(n):
 	G , nodes , ego = build_graph(n)
 	A = nx.to_numpy_matrix(G)
 	C = connectedness(A)
@@ -83,13 +125,23 @@ def to_adjacency_matrix(n):
 	for x in range(0,clus):
 		circles += [[]]
 	
-	tmp = 0 
+	tmp = 0
 	for node in nodes:
 		circles[L[tmp]] += [node]
 		tmp += 1
+	final_circle = []
+	for circle in circles:
+		if len(circles) == 1:
+			final_circle += [circle]
+			continue
+		den = compute_density(circle , nodes , A)
+		if den + 1e-9 < .250:
+			continue
+		final_circle += [circle]
 
-	# print(circles) 
-	return ego , circles 
+
+	# print(final_circle) 
+	return ego , final_circle 
 	
 	
 
@@ -103,6 +155,7 @@ def outformat(ego , circles):
 	out += str(ego)+","
 	fl = 0 
 	egofl = 0
+	sfl = 0
 	for circle in circles:
 		if fl == 1:
 			out += ';'
@@ -115,8 +168,10 @@ def outformat(ego , circles):
 				out += ' '
 			sfl = 1
 			out += str(x)
-		if egofl == 0:
-			out +=" " +str(ego)
+	if egofl == 0:
+		if fl == 1 or sfl == 1:
+			out += ' '
+		out +=str(ego)
 
 	# print(out)
 	return out
@@ -128,13 +183,14 @@ def gen_graph():
 	outfile = open("arksubmission.csv", "w")
 	outfile.write('UserId,Predicted\n')
 	for i in range(0,110):
-		ego , circles = to_adjacency_matrix(i)
+		ego , circles = compute(i)
 		out = outformat(ego , circles)
 
 		if out == "NO":
 			continue
 		# print(out)
 		outfile.write(out + '\n')
+		print(i)
 		# spamwriter.writerow([out])
 
 
